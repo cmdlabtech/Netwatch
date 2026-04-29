@@ -13,6 +13,8 @@ pyinstaller \
   --clean \
   netwatch.py
 
+chmod +x dist/netwatch
+
 echo ""
 echo "Done → dist/netwatch"
 echo "Share that single file. Run with:  ./dist/netwatch"

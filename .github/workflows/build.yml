@@ -40,6 +40,9 @@ jobs:
             --clean \
             netwatch.py
 
+      - name: Set executable bit
+        run: chmod +x dist/netwatch
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
