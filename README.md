@@ -30,7 +30,7 @@ All releases: [github.com/cmdlabtech/Netwatch/releases](https://github.com/cmdla
 
 **macOS** — see the [macOS note](#macos-note-binary-not-app) below before running.
 
-**Windows** — run as Administrator (required for packet capture).
+**Windows** — packet capture requires Administrator privileges **or** Npcap installed with non-admin access enabled (Wireshark installer → uncheck "Restrict Npcap driver's access to Administrators only").
 
 ### Run from source
 
@@ -51,12 +51,12 @@ The browser opens automatically at `http://127.0.0.1:8765`.
 | Python 3.11+ | Only needed when running from source |
 | tshark (Wireshark) | Recommended. macOS/Linux can also use tcpdump |
 | Anthropic or xAI API key | Enter in the GUI — stored locally in `~/.netwatch.conf` |
-| Admin / root privileges | Required for packet capture (tshark/tcpdump need raw socket access) |
+| Admin / root privileges | Required on macOS/Linux. On Windows: either run as Administrator, or install Npcap with "Restrict Npcap driver's access to Administrators only" unchecked |
 
 ### Installing tshark
 
 - **macOS:** `brew install wireshark` or download from [wireshark.org](https://www.wireshark.org/)
-- **Windows:** install [Wireshark](https://www.wireshark.org/) — tshark is included; run NetWatch as Administrator
+- **Windows:** install [Wireshark](https://www.wireshark.org/) — tshark is included. To avoid needing to run as Administrator, uncheck "Restrict Npcap driver's access to Administrators only" during the Wireshark/Npcap install.
 - **Linux:** `sudo apt install tshark` or `sudo dnf install wireshark-cli`
 
 On macOS/Linux you can also grant your user BPF access so you don't need `sudo` every time:

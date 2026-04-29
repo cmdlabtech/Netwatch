@@ -124,7 +124,8 @@ jobs:
             ```
 
             ### Windows — first run
-            Right-click → **Run as administrator** (required for packet capture).
+            Packet capture requires either Administrator privileges or Npcap installed with non-admin access enabled.
+            To avoid needing to run as Administrator: during the Wireshark install, uncheck **"Restrict Npcap driver's access to Administrators only"**.
 
             See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for full setup instructions.
           files: |
