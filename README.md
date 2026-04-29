@@ -21,7 +21,12 @@ Open your browser, configure everything in the GUI, and get plain-English analys
 
 ### Pre-built binaries (macOS / Windows)
 
-Download the latest release from the [Releases](../../releases) page.
+| Platform | Download |
+|---|---|
+| macOS | [**netwatch** (latest)](https://github.com/cmdlabtech/Netwatch/releases/latest/download/netwatch) |
+| Windows | [**netwatch-windows.exe** (latest)](https://github.com/cmdlabtech/Netwatch/releases/latest/download/netwatch-windows.exe) |
+
+All releases: [github.com/cmdlabtech/Netwatch/releases](https://github.com/cmdlabtech/Netwatch/releases)
 
 **macOS** — see the [macOS note](#macos-note-binary-not-app) below before running.
 

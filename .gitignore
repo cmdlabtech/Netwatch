@@ -1,6 +1,7 @@
 # Build artifacts
 build/
 dist/
+icon.ico
 
 # Python
 __pycache__/
