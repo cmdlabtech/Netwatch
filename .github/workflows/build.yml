@@ -1,0 +1,131 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyinstaller anthropic flask
+
+      - name: Build binary
+        # Produces a plain Unix executable — NOT a .app bundle.
+        # A .app bundle requires Apple code-signing and notarization to pass
+        # Gatekeeper without prompts; an unsigned .app forces users through
+        # System Settings → Privacy & Security. A raw binary launched from
+        # the terminal skips that entirely. Users only need to run:
+        #   xattr -d com.apple.quarantine ./netwatch
+        # once after downloading, which is far simpler than approving a
+        # quarantined .app.
+        run: |
+          pyinstaller \
+            --onefile \
+            --name netwatch \
+            --icon icon.icns \
+            --strip \
+            --clean \
+            netwatch.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netwatch-macos
+          path: dist/netwatch
+          if-no-files-found: error
+
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyinstaller anthropic flask pillow pefile
+
+      - name: Generate icon
+        run: python make_icon.py
+
+      - name: Build binary
+        run: python -m PyInstaller --onefile --name netwatch --icon icon.ico --clean netwatch.py
+
+      - name: Stamp icon (guaranteed fallback)
+        run: python stamp_icon.py dist\netwatch.exe icon.ico
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netwatch-windows
+          path: dist\netwatch.exe
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS binary
+        uses: actions/download-artifact@v4
+        with:
+          name: netwatch-macos
+          path: release/
+
+      - name: Download Windows binary
+        uses: actions/download-artifact@v4
+        with:
+          name: netwatch-windows
+          path: release/
+
+      - name: Make macOS binary executable
+        run: chmod +x release/netwatch
+
+      - name: Rename Windows binary
+        run: mv release/netwatch.exe release/netwatch-windows.exe || true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "NetWatch ${{ github.ref_name }}"
+          body: |
+            ## NetWatch ${{ github.ref_name }}
+
+            ### Downloads
+            | Platform | File |
+            |---|---|
+            | macOS (Intel + Apple Silicon) | `netwatch` |
+            | Windows (x64) | `netwatch-windows.exe` |
+
+            ### macOS — first run
+            Remove the quarantine flag before running:
+            ```bash
+            xattr -d com.apple.quarantine ./netwatch
+            chmod +x ./netwatch
+            sudo ./netwatch
+            ```
+
+            ### Windows — first run
+            Right-click → **Run as administrator** (required for packet capture).
+
+            See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for full setup instructions.
+          files: |
+            release/netwatch
+            release/netwatch-windows.exe
+          draft: false
+          prerelease: false
