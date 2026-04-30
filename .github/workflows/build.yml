@@ -107,11 +107,11 @@ jobs:
           name: netwatch-windows
           path: release/
 
-      - name: Make macOS binary executable
-        run: chmod +x release/netwatch
-
-      - name: Rename Windows binary
-        run: mv release/netwatch.exe release/netwatch-windows.exe || true
+      - name: Rename binaries
+        run: |
+          mv release/netwatch release/netwatch-macos || true
+          chmod +x release/netwatch-macos
+          mv release/netwatch.exe release/netwatch-windows.exe || true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -123,15 +123,15 @@ jobs:
             ### Downloads
             | Platform | File |
             |---|---|
-            | macOS (Intel + Apple Silicon) | `netwatch` |
+            | macOS (Intel + Apple Silicon) | `netwatch-macos` |
             | Windows (x64) | `netwatch-windows.exe` |
 
             ### macOS — first run
             Remove the quarantine flag before running:
             ```bash
-            xattr -d com.apple.quarantine ./netwatch
-            chmod +x ./netwatch
-            sudo ./netwatch
+            xattr -d com.apple.quarantine ./netwatch-macos
+            chmod +x ./netwatch-macos
+            sudo ./netwatch-macos
             ```
 
             ### Windows — first run
@@ -141,7 +141,7 @@ jobs:
 
             See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for full setup instructions.
           files: |
-            release/netwatch
+            release/netwatch-macos
             release/netwatch-windows.exe
           draft: false
           prerelease: false

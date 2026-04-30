@@ -23,7 +23,7 @@ Open your browser, configure everything in the GUI, and get plain-English analys
 
 | Platform | Download |
 |---|---|
-| macOS | [**netwatch** (latest)](https://github.com/cmdlabtech/Netwatch/releases/latest/download/netwatch) |
+| macOS | [**netwatch-macos** (latest)](https://github.com/cmdlabtech/Netwatch/releases/latest/download/netwatch-macos) |
 | Windows | [**netwatch-windows.exe** (latest)](https://github.com/cmdlabtech/Netwatch/releases/latest/download/netwatch-windows.exe) |
 
 All releases: [github.com/cmdlabtech/Netwatch/releases](https://github.com/cmdlabtech/Netwatch/releases)
@@ -105,9 +105,9 @@ A `.app` bundle requires Apple code-signing and notarization to pass Gatekeeper 
 macOS quarantines files downloaded from the internet. Remove the quarantine flag before running:
 
 ```bash
-xattr -d com.apple.quarantine ./netwatch
-chmod +x ./netwatch
-sudo ./netwatch          # sudo needed for packet capture
+xattr -d com.apple.quarantine ./netwatch-macos
+chmod +x ./netwatch-macos
+sudo ./netwatch-macos          # sudo needed for packet capture
 ```
 
 Or right-click → **Open** in Finder, which also clears the quarantine flag.
