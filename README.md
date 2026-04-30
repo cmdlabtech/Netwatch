@@ -30,7 +30,7 @@ All releases: [github.com/cmdlabtech/Netwatch/releases](https://github.com/cmdla
 
 **macOS** — see the [macOS note](#macos-note-binary-not-app) below before running.
 
-**Windows** — packet capture requires Administrator privileges **or** Npcap installed with non-admin access enabled (Wireshark installer → uncheck "Restrict Npcap driver's access to Administrators only").
+**Windows** — the `.exe` bundles tshark and the Npcap installer; no Wireshark install required. On first launch, right-click → **Run as administrator** so the bundled Npcap installer can complete (silent, one-time). After that, capture works without admin because Npcap is configured for non-admin access.
 
 ### Run from source
 
@@ -49,9 +49,10 @@ The browser opens automatically at `http://127.0.0.1:8765`.
 | Requirement | Notes |
 |---|---|
 | Python 3.11+ | Only needed when running from source |
-| tshark (Wireshark) | Recommended. macOS/Linux can also use tcpdump |
+| tshark (Wireshark) | Bundled inside the Windows `.exe`. Required separately when running from source, or for the macOS binary (macOS/Linux can also use tcpdump) |
+| Npcap | Bundled inside the Windows `.exe` and silently installed on first run. Not needed on macOS/Linux |
 | Anthropic or xAI API key | Enter in the GUI — stored locally in `~/.netwatch.conf` |
-| Admin / root privileges | Required on macOS/Linux. On Windows: either run as Administrator, or install Npcap with "Restrict Npcap driver's access to Administrators only" unchecked |
+| Admin / root privileges | Required on macOS/Linux. On Windows: needed once on first launch so Npcap can install (silent, with non-admin capture enabled); subsequent runs do not need admin |
 
 ### Installing tshark
 
@@ -123,12 +124,20 @@ pyinstaller --onefile --name netwatch --icon icon.icns --strip --clean netwatch.
 
 ### Windows
 
+The Windows build bundles tshark + DLLs and the Npcap redistributable installer so end users do not need Wireshark.
+
+Prerequisites on the build machine:
+1. Install [Wireshark](https://www.wireshark.org/) — `build.bat` harvests `tshark.exe` and its DLLs from `C:\Program Files\Wireshark`.
+2. Download the [Npcap installer](https://npcap.com/#download) and save it to `tools\npcap-installer.exe` (relative to the repo root).
+
+Then:
+
 ```batch
-pip install pyinstaller anthropic flask pillow pefile
-python make_icon.py
-python -m PyInstaller --onefile --name netwatch --icon icon.ico --clean netwatch.py
+build.bat
 # output: dist\netwatch.exe
 ```
+
+Both `tools\wireshark\` and `tools\npcap-installer.exe` are gitignored — they live only on the build machine.
 
 ---
 

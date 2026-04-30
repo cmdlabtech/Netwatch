@@ -1,5 +1,12 @@
 """
 Embed an ICO file into a Windows PE executable via the Win32 UpdateResource API.
+
+PyInstaller-safe: the Win32 BeginUpdateResource/EndUpdateResource APIs do not
+preserve a PE overlay (data appended past the end of the last section).
+PyInstaller's --onefile bootloader stores its bundled archive exactly there.
+We snapshot the overlay before stamping and re-append it afterwards so the
+resulting exe still has both a rich multi-size icon AND a working PKG archive.
+
 Usage: python stamp_icon.py <exe_path> <ico_path>
 """
 import sys, struct, os, ctypes
@@ -12,6 +19,23 @@ if len(sys.argv) != 3:
 
 exe_path = sys.argv[1]
 ico_path = sys.argv[2]
+
+# ── Snapshot PyInstaller overlay (everything after the last PE section) ──────
+try:
+    import pefile
+except ImportError:
+    print("stamp_icon: pefile is required (pip install pefile)"); sys.exit(1)
+
+_pe_probe = pefile.PE(exe_path, fast_load=True)
+overlay_offset = _pe_probe.get_overlay_data_start_offset()
+_pe_probe.close()
+
+overlay_bytes = b""
+if overlay_offset is not None:
+    with open(exe_path, "rb") as f:
+        f.seek(overlay_offset)
+        overlay_bytes = f.read()
+    print(f"stamp_icon: snapshotted PE overlay = {len(overlay_bytes):,} bytes")
 
 # ── Parse ICO ─────────────────────────────────────────────────────────────────
 with open(ico_path, "rb") as f:
@@ -89,7 +113,20 @@ if not committed:
     print(f"stamp_icon: EndUpdateResource failed (err={k32.GetLastError()})")
     sys.exit(1)
 
-if ok:
-    print(f"stamp_icon: icon embedded OK into {os.path.basename(exe_path)}")
-else:
+if not ok:
     sys.exit(1)
+
+# ── Restore PyInstaller overlay if BeginUpdateResource stripped it ───────────
+if overlay_bytes:
+    _pe_after = pefile.PE(exe_path, fast_load=True)
+    new_overlay_offset = _pe_after.get_overlay_data_start_offset()
+    _pe_after.close()
+    new_section_end = new_overlay_offset if new_overlay_offset is not None else os.path.getsize(exe_path)
+    with open(exe_path, "r+b") as f:
+        # Drop whatever overlay (if any) the resource update produced, then re-attach ours.
+        f.truncate(new_section_end)
+        f.seek(0, os.SEEK_END)
+        f.write(overlay_bytes)
+    print(f"stamp_icon: restored PE overlay ({len(overlay_bytes):,} bytes)")
+
+print(f"stamp_icon: icon embedded OK into {os.path.basename(exe_path)}")

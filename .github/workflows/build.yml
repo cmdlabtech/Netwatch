@@ -53,6 +53,8 @@ jobs:
   build-windows:
     name: Build (Windows)
     runs-on: windows-latest
+    env:
+      NPCAP_VERSION: "1.79"
     steps:
       - uses: actions/checkout@v4
 
@@ -60,17 +62,21 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
-        run: pip install pyinstaller anthropic flask pillow pefile
+      - name: Install Wireshark
+        # build.bat harvests tshark.exe + DLLs from this install to bundle
+        # into the netwatch.exe so end users don't need Wireshark installed.
+        run: choco install wireshark --no-progress -y
 
-      - name: Generate icon
-        run: python make_icon.py
+      - name: Download Npcap installer
+        # Bundled inside netwatch.exe and silently installed on the user's
+        # machine on first launch. Update NPCAP_VERSION when a new stable
+        # release is available at https://npcap.com/#download.
+        run: |
+          New-Item -ItemType Directory -Force -Path tools | Out-Null
+          Invoke-WebRequest -Uri "https://npcap.com/dist/npcap-${{ env.NPCAP_VERSION }}.exe" -OutFile "tools\npcap-installer.exe"
 
-      - name: Build binary
-        run: python -m PyInstaller --onefile --name netwatch --icon icon.ico --clean netwatch.py
-
-      - name: Stamp icon (guaranteed fallback)
-        run: python stamp_icon.py dist\netwatch.exe icon.ico
+      - name: Build binary (bundles tshark + Npcap installer)
+        run: .\build.bat
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -124,8 +130,9 @@ jobs:
             ```
 
             ### Windows — first run
-            Packet capture requires either Administrator privileges or Npcap installed with non-admin access enabled.
-            To avoid needing to run as Administrator: during the Wireshark install, uncheck **"Restrict Npcap driver's access to Administrators only"**.
+            The `.exe` bundles tshark and the Npcap packet-capture driver — **no Wireshark install needed**.
+
+            Right-click → **Run as administrator** on first launch so the bundled Npcap driver can install silently. After that, packet capture works without admin.
 
             See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for full setup instructions.
           files: |

@@ -3,6 +3,10 @@ build/
 dist/
 icon.ico
 
+# Bundled third-party binaries (provided locally on the build machine)
+tools/wireshark/
+tools/npcap-installer.exe
+
 # Python
 __pycache__/
 *.pyc

@@ -13,11 +13,14 @@ Quickstart:
     # browser opens at http://127.0.0.1:8765
 
 Optional system dep: tshark (Wireshark) on PATH for packet capture.
-On macOS/Linux tcpdump also works. On Windows install Wireshark and run
-this script as Administrator.
+On macOS/Linux tcpdump also works. On Windows the pre-built .exe bundles
+tshark and the Npcap installer — first launch as Administrator installs
+Npcap silently; subsequent launches need no extra setup.
 """
 
 from __future__ import annotations
+
+__version__ = "1.0.1"
 
 import configparser
 import json
@@ -298,9 +301,118 @@ class PingMonitor:
 # CAPTURE  — tshark/tcpdump + always-on ring buffer
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _bundled_resource_dir() -> Path:
+    """Directory containing bundled resources (tshark, npcap installer).
+
+    When frozen by PyInstaller --onefile, resources are extracted to sys._MEIPASS.
+    When running from source, resources live next to this script.
+    """
+    base = getattr(sys, "_MEIPASS", None)
+    return Path(base) if base else Path(__file__).resolve().parent
+
+
+def _bundled_wireshark_dir() -> Path | None:
+    d = _bundled_resource_dir() / "tools" / "wireshark"
+    return d if (d / ("tshark.exe" if sys.platform == "win32" else "tshark")).exists() else None
+
+
+def _is_admin_windows() -> bool:
+    if sys.platform != "win32":
+        return True
+    try:
+        import ctypes
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except Exception:
+        return False
+
+
+def _npcap_installed() -> bool:
+    """Detect Npcap on Windows. Checks the service first, then wpcap.dll."""
+    if sys.platform != "win32":
+        return True
+    try:
+        r = subprocess.run(["sc", "query", "npcap"], capture_output=True, timeout=5)
+        if r.returncode == 0 and b"STATE" in r.stdout:
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    sysroot = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+    for candidate in (sysroot / "System32" / "Npcap" / "wpcap.dll",
+                      sysroot / "System32" / "wpcap.dll"):
+        if candidate.exists():
+            return True
+    return False
+
+
+def _run_with_heartbeat(cmd: list[str], label: str, timeout: int) -> int:
+    """Run a child process while printing a dot every 2 s so the console doesn't look frozen."""
+    print(f"  [*] {label} ", end="", flush=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    waited = 0
+    try:
+        while True:
+            try:
+                rc = proc.wait(timeout=2)
+                print(" done.", flush=True)
+                return rc
+            except subprocess.TimeoutExpired:
+                print(".", end="", flush=True)
+                waited += 2
+                if waited >= timeout:
+                    proc.kill()
+                    print(" timed out.", flush=True)
+                    return -1
+    except KeyboardInterrupt:
+        proc.kill()
+        raise
+
+
+def ensure_npcap_windows() -> None:
+    """Install bundled Npcap if missing. No-op on non-Windows or when already installed."""
+    if sys.platform != "win32":
+        return
+    if _npcap_installed():
+        print("  [ok] Npcap driver already installed.", flush=True)
+        return
+    installer = _bundled_resource_dir() / "tools" / "npcap-installer.exe"
+    if not installer.exists():
+        print("  [!!] Npcap is not installed and no bundled installer was found.", flush=True)
+        print("       Install Npcap from https://npcap.com/ to enable packet capture.", flush=True)
+        return
+    print("  [..] Npcap not detected — running first-time installer (silent).", flush=True)
+    if not _is_admin_windows():
+        print("       This needs Administrator rights — Windows will show a UAC prompt.", flush=True)
+    args = ["/S", "/winpcap_mode=yes", "/admin_only=no",
+            "/loopback_support=yes", "/dlt_null=yes"]
+    if _is_admin_windows():
+        rc = _run_with_heartbeat([str(installer)] + args,
+                                 "Installing Npcap (no admin prompt, already elevated)",
+                                 timeout=300)
+    else:
+        ps = (
+            f"Start-Process -FilePath '{installer}' "
+            f"-ArgumentList '{' '.join(args)}' -Verb RunAs -Wait"
+        )
+        rc = _run_with_heartbeat(
+            ["powershell", "-NoProfile", "-Command", ps],
+            "Waiting for Npcap installer (approve the UAC prompt)",
+            timeout=600,
+        )
+    if rc == 0 and _npcap_installed():
+        print("  [ok] Npcap installed successfully.", flush=True)
+    else:
+        print("  [!!] Npcap install did not complete — capture will not work until it is installed.",
+              flush=True)
+
+
 def detect_capture_tool() -> str:
-    # On Windows, Wireshark often isn't on PATH even when installed — probe common locations
-    # and inject the directory into PATH so every subsequent tshark call works.
+    # 1. Bundled tshark (shipped inside the PyInstaller exe). Highest priority so
+    #    a user with a partial/old Wireshark install still gets the version we tested with.
+    bundled = _bundled_wireshark_dir()
+    if bundled is not None:
+        os.environ["PATH"] = str(bundled) + os.pathsep + os.environ.get("PATH", "")
+
+    # 2. On Windows, also probe common Wireshark install locations as a fallback.
     if sys.platform == "win32":
         _wireshark_dirs = [
             Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Wireshark",
@@ -308,7 +420,7 @@ def detect_capture_tool() -> str:
         ]
         for d in _wireshark_dirs:
             if (d / "tshark.exe").exists():
-                os.environ["PATH"] = str(d) + os.pathsep + os.environ.get("PATH", "")
+                os.environ["PATH"] = os.environ.get("PATH", "") + os.pathsep + str(d)
                 break
 
     tools = ["tshark"] if sys.platform == "win32" else ["tshark", "tcpdump"]
@@ -319,7 +431,10 @@ def detect_capture_tool() -> str:
         except (FileNotFoundError, subprocess.TimeoutExpired):
             continue
     if sys.platform == "win32":
-        raise RuntimeError("tshark not found. Install Wireshark from wireshark.org (no PATH change needed).")
+        raise RuntimeError(
+            "tshark not found. The pre-built netwatch.exe ships tshark internally — "
+            "if you're running from source, install Wireshark from wireshark.org."
+        )
     raise RuntimeError("Neither tshark nor tcpdump found. Install wireshark or tcpdump.")
 
 
@@ -1888,16 +2003,66 @@ def create_app(controller: Controller) -> Flask:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def main() -> None:
+    print("", flush=True)
+    print(f"  NetWatch v{__version__} — starting up", flush=True)
+    print("  ─────────────────────────────────", flush=True)
+    if getattr(sys, "frozen", False):
+        print("  [ok] Bundle extracted.", flush=True)
+
     host = os.environ.get("NETWATCH_HOST", "127.0.0.1")
     port = int(os.environ.get("NETWATCH_PORT", "8765"))
 
+    # Windows reserves dynamic port ranges (Hyper-V / WSL / Docker) that often
+    # contain otherwise-unused ports. Trying to bind one returns WSAEACCES and
+    # crashes Flask. Probe candidate ports and fall back to the next free one.
+    def _port_is_bindable(p: int) -> bool:
+        import socket as _socket
+        s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        try:
+            s.bind((host, p))
+            return True
+        except OSError:
+            return False
+        finally:
+            s.close()
+
+    if not _port_is_bindable(port):
+        original = port
+        for candidate in [8765, 8080, 8181, 8866, 9090, 9876, 0]:
+            if candidate == original:
+                continue
+            if candidate == 0 or _port_is_bindable(candidate):
+                # candidate==0 means "let the OS pick" — bind once to discover the port.
+                if candidate == 0:
+                    import socket as _socket
+                    s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+                    s.bind((host, 0))
+                    candidate = s.getsockname()[1]
+                    s.close()
+                print(f"  [..] Port {original} is reserved by Windows — using {candidate} instead.",
+                      flush=True)
+                port = candidate
+                break
+
+    # On Windows, prepend bundled tshark to PATH and install Npcap if missing,
+    # before any capture code path runs.
+    if sys.platform == "win32":
+        bundled = _bundled_wireshark_dir()
+        if bundled is not None:
+            os.environ["PATH"] = str(bundled) + os.pathsep + os.environ.get("PATH", "")
+            print(f"  [ok] Using bundled tshark at {bundled}", flush=True)
+        else:
+            print("  [..] No bundled tshark found — falling back to system PATH.", flush=True)
+        ensure_npcap_windows()
+
+    print("  [..] Starting web server…", flush=True)
     controller = Controller()
     app = create_app(controller)
 
     url = f"http://{host}:{port}"
     print(f"\n  NetWatch web UI  →  {url}")
     print(f"  Config saved at  →  {_CONFIG_PATH}")
-    print(f"  Press Ctrl-C to stop\n")
+    print(f"  Press Ctrl-C to stop\n", flush=True)
 
     # Watchdog: exit when the browser tab has been closed for >30 s.
     # Only activates after the first heartbeat (so startup delay doesn't count).
