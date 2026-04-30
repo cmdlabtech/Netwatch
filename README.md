@@ -40,7 +40,7 @@ Requires Python 3.11+. Dependencies install automatically on first run.
 python3 netwatch.py
 ```
 
-The browser opens automatically at `http://127.0.0.1:8765`.
+The browser opens automatically at `http://127.0.0.1:8765` (or the next available port if 8765 is reserved by the OS).
 
 ---
 
@@ -54,10 +54,12 @@ The browser opens automatically at `http://127.0.0.1:8765`.
 | Anthropic or xAI API key | Enter in the GUI — stored locally in `~/.netwatch.conf` |
 | Admin / root privileges | Required on macOS/Linux. On Windows: needed once on first launch so Npcap can install (silent, with non-admin capture enabled); subsequent runs do not need admin |
 
-### Installing tshark
+### Installing tshark (source builds only)
+
+The pre-built Windows `.exe` bundles tshark — no installation needed. If you're running from source:
 
 - **macOS:** `brew install wireshark` or download from [wireshark.org](https://www.wireshark.org/)
-- **Windows:** install [Wireshark](https://www.wireshark.org/) — tshark is included. To avoid needing to run as Administrator, uncheck "Restrict Npcap driver's access to Administrators only" during the Wireshark/Npcap install.
+- **Windows:** install [Wireshark](https://www.wireshark.org/) — tshark is included. During the Npcap component of that install, uncheck "Restrict Npcap driver's access to Administrators only" to avoid needing to run as Administrator.
 - **Linux:** `sudo apt install tshark` or `sudo dnf install wireshark-cli`
 
 On macOS/Linux you can also grant your user BPF access so you don't need `sudo` every time:
@@ -87,7 +89,7 @@ All settings are available in the browser GUI. They are saved to `~/.netwatch.co
 | Cooldown | 120 s | Minimum time between captures for the same event |
 | Pre-buffer | 10 s | Seconds of always-on ring buffer prepended to each capture |
 | AI provider | Anthropic | Choose between Claude (Anthropic) or Grok (xAI) |
-| Claude model | `claude-opus-4-5` | Any Anthropic model slug |
+| Claude model | `claude-opus-4-7` | Any Anthropic model slug |
 | Grok model | `grok-3-mini` | Any xAI model slug |
 
 ---

@@ -77,7 +77,7 @@ class Config:
     capture_duration: int = 30
     capture_dir: str = "./captures"
     cooldown_secs: int = 120
-    claude_model: str = "claude-opus-4-5"
+    claude_model: str = "claude-opus-4-7"
     prebuffer_secs: int = 10
     prebuffer_enabled: bool = True
     ai_provider: str = "anthropic"
