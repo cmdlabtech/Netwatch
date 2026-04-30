@@ -893,7 +893,8 @@ class NetWatch:
             self.state.set_capturing(target, False)
             self.state.add_event("CAPTURE", f"Saved: {Path(pcap_path).name}")
             if self.config.ai_enabled:
-                self.state.add_event("ANALYSIS", f"Sending {target} capture to Claude…")
+                _ai_label = "Grok" if self.config.ai_provider == "grok" else "Claude"
+                self.state.add_event("ANALYSIS", f"Sending {target} capture to {_ai_label}…")
                 self.state.set_analyzing(target, True)
                 try:
                     analysis = self.analyzer.analyze([target], {target: loss}, summary, pcap_path)
