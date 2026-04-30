@@ -65,7 +65,12 @@ jobs:
       - name: Install Wireshark
         # build.bat harvests tshark.exe + DLLs from this install to bundle
         # into the netwatch.exe so end users don't need Wireshark installed.
-        run: choco install wireshark --no-progress -y
+        # winget is pre-installed on windows-latest and more reliable than
+        # chocolatey community for large packages like Wireshark.
+        run: |
+          winget install WiresharkFoundation.Wireshark --silent --accept-package-agreements --accept-source-agreements
+          # Refresh PATH so build.bat can locate tshark.exe via %ProgramFiles%\Wireshark
+          echo "$env:ProgramFiles\Wireshark" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Download Npcap installer
         # Bundled inside netwatch.exe and silently installed on the user's
