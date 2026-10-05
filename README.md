@@ -168,4 +168,4 @@ Optional donations help keep CMDLAB tools free and maintained:
 
 ## License
 
-MIT
+[MIT](LICENSE) — Copyright © 2026 CMDLAB LLC
