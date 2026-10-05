@@ -5,7 +5,7 @@ AI-powered network monitor. Detects packet loss via ICMP ping, triggers automati
 Open your browser, configure everything in the GUI, and get plain-English analysis of exactly what went wrong on your network.
 
 <p align="center">
-  <a href="https://www.paypal.com/donate/?hosted_button_id=Z5SDZULELYGNS"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=flat-square&logo=paypal&logoColor=white" alt="Donate with PayPal"/></a>
+  <a href="https://cmdlab.tech/donate"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=flat-square&logo=paypal&logoColor=white" alt="Donate with PayPal"/></a>
 </p>
 
 ---
@@ -162,7 +162,7 @@ Both `tools\wireshark\` and `tools\npcap-installer.exe` are gitignored — they 
 
 Optional donations help keep CMDLAB tools free and maintained:
 
-[Donate with PayPal](https://www.paypal.com/donate/?hosted_button_id=Z5SDZULELYGNS)
+[Donate with PayPal](https://cmdlab.tech/donate)
 
 ---
 
