@@ -4,6 +4,10 @@ AI-powered network monitor. Detects packet loss via ICMP ping, triggers automati
 
 Open your browser, configure everything in the GUI, and get plain-English analysis of exactly what went wrong on your network.
 
+<p align="center">
+  <a href="https://www.paypal.com/donate/?hosted_button_id=Z5SDZULELYGNS"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=flat-square&logo=paypal&logoColor=white" alt="Donate with PayPal"/></a>
+</p>
+
 ---
 
 ## Features
@@ -151,6 +155,14 @@ Both `tools\wireshark\` and `tools\npcap-installer.exe` are gitignored — they 
 4. **Capture** — tshark or tcpdump records traffic on the configured interface for the capture duration.
 5. **AI analysis** — the capture summary is sent to Claude or Grok with a structured prompt asking for root-cause analysis and remediation steps.
 6. **Results** — the analysis appears in the browser GUI and the raw pcap is available for download.
+
+---
+
+## Support
+
+Optional donations help keep CMDLAB tools free and maintained:
+
+[Donate with PayPal](https://www.paypal.com/donate/?hosted_button_id=Z5SDZULELYGNS)
 
 ---
 
