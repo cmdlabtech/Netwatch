@@ -156,4 +156,4 @@ Both `tools\wireshark\` and `tools\npcap-installer.exe` are gitignored — they 
 
 ## License
 
-MIT
+[MIT](LICENSE) — Copyright © 2026 CMDLAB LLC
